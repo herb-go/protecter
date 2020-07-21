@@ -32,7 +32,11 @@ func (p *Protecter) WithAuthenticator(a credential.Authenticator) *Protecter {
 	p.Authenticator = a
 	return p
 }
-
+func (p *Protecter) Reset() {
+	p.Authenticator = DefaultAuthenticator
+	p.OnFail = DefaultOnFail
+	p.Credentialers = []Credentialer{}
+}
 func New() *Protecter {
 	p := &Protecter{
 		Authenticator: DefaultAuthenticator,
