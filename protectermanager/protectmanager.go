@@ -1,11 +1,13 @@
 package protectermanager
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/herb-go/protecter"
 )
 
+var Debug bool
 var locker sync.Mutex
 
 var protecters = map[string]*protecter.Protecter{}
@@ -17,18 +19,11 @@ func Register(name string) *protecter.Protecter {
 	if !ok {
 		p = protecter.New()
 		protecters[name] = p
+		if Debug {
+			fmt.Printf("Protecteer [%s] registered\n", name)
+		}
 	}
 	return p
-}
-
-func Names() []string {
-	locker.Lock()
-	defer locker.Unlock()
-	result := []string{}
-	for k := range protecters {
-		result = append(result, k)
-	}
-	return result
 }
 
 func Flush() {
