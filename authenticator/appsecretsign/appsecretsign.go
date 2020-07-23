@@ -58,14 +58,14 @@ func (s *Signer) Verify(c credential.Credentials, secretdata secret.Secret) (boo
 		return false, nil
 	}
 	now := time.Now()
-	offset := time.Unix(tsnumber, 0).Sub(now)
+	offset := now.Sub(time.Unix(tsnumber, 0))
 	if s.TimeOffsetMax != nil {
-		if *s.TimeOffsetMax > offset {
+		if offset > *s.TimeOffsetMax {
 			return false, nil
 		}
 	}
 	if s.TimeOffsetMin != nil {
-		if *s.TimeOffsetMin < offset {
+		if offset < *s.TimeOffsetMin {
 			return false, nil
 		}
 	}
