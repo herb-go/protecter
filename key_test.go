@@ -6,11 +6,17 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/herb-go/herb/middleware"
+	"github.com/herb-go/herbsecurity/authorize/role"
+
 	"github.com/herb-go/herbsecurity/authority"
 
 	"github.com/herb-go/herbsecurity/authority/credential"
 )
 
+var okHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("ok"))
+})
 var testHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	id, err := DefaultKey.IdentifyRequest(r)
 	if err != nil {
@@ -190,5 +196,67 @@ func TestMiddlewareSuccess(t *testing.T) {
 	resp.Body.Close()
 	if resp.StatusCode != 200 {
 		t.Fatal(resp)
+	}
+}
+
+func TestRoles(t *testing.T) {
+	loader1 := RoleRolesLoader(role.NewPlainRoles("role1"))
+	loader2 := RoleRolesLoader(role.NewPlainRoles("role2"))
+	policy1 := RolePolicyLoader(role.NewPlainRoles("role1"))
+	policy2 := RolePolicyLoader(role.NewPlainRoles("role2"))
+	mux := &http.ServeMux{}
+	mux.Handle("/l1p1", middleware.New().Use(
+		RolesMiddleware(loader1),
+		PolicyMiddleware(policy1),
+	).Handle(okHandler),
+	)
+	mux.Handle("/l1l2p1", middleware.New().Use(
+		RolesMiddleware(loader1, loader2),
+		PolicyMiddleware(policy1),
+	).Handle(okHandler),
+	)
+	mux.Handle("/l1p1p2", middleware.New().Use(
+		RolesMiddleware(loader1),
+		PolicyMiddleware(policy1, policy2),
+	).Handle(okHandler),
+	)
+	mux.Handle("/l1l2p1p2", middleware.New().Use(
+		RolesMiddleware(loader1, loader2),
+		PolicyMiddleware(policy1, policy2),
+	).Handle(okHandler),
+	)
+	s := httptest.NewServer(mux)
+	defer s.Close()
+	resp, err := http.Get(s.URL + "/l1p1")
+	if err != nil {
+		panic(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatal(resp.StatusCode)
+	}
+	resp, err = http.Get(s.URL + "/l1l2p1")
+	if err != nil {
+		panic(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatal(resp.StatusCode)
+	}
+	resp, err = http.Get(s.URL + "/l1p1p2")
+	if err != nil {
+		panic(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != 403 {
+		t.Fatal(resp.StatusCode)
+	}
+	resp, err = http.Get(s.URL + "/l1l2p1p2")
+	if err != nil {
+		panic(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatal(resp.StatusCode)
 	}
 }

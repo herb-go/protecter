@@ -101,6 +101,35 @@ func (k Key) ProtectMiddleware(p *Protecter) func(w http.ResponseWriter, r *http
 	}
 }
 
+func (k Key) RolesMiddleware(rls []RolesLoader) func(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	return func(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+		ctx := k.load(r)
+		for k := range rls {
+			roles, err := rls[k].LoadRoles(r)
+			if err != nil {
+				panic(err)
+			}
+			ctx.Roles.Append((*roles)...)
+		}
+		k.store(r, ctx)
+		next(w, r)
+	}
+}
+func (k Key) PolicyMiddleware(pls []PolicyLoader, onfail http.HandlerFunc) func(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	return func(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+		ctx := k.load(r)
+		ok, err := AuthorizeRoles(r, ctx.Roles, pls...)
+		if err != nil {
+			panic(err)
+		}
+		if !ok {
+			onfail(w, r)
+			return
+		}
+		next(w, r)
+	}
+}
+
 var DefaultKey = Key("")
 
 func ProtectWith(p *Protecter, h http.Handler) http.Handler {
@@ -113,4 +142,12 @@ func LoadAuth(r *http.Request) *authority.Auth {
 
 func ProtectMiddleware(p *Protecter) func(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	return DefaultKey.ProtectMiddleware(p)
+}
+
+func RolesMiddleware(rls ...RolesLoader) func(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	return DefaultKey.RolesMiddleware(rls)
+}
+
+func PolicyMiddleware(pls ...PolicyLoader) func(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	return DefaultKey.PolicyMiddleware(pls, DefaultOnFail.ServeHTTP)
 }

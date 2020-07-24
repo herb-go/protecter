@@ -1,4 +1,4 @@
-package httprole
+package protecter
 
 import (
 	"net/http"
@@ -43,6 +43,11 @@ func Authorize(r *http.Request, rl RolesLoader, pls ...PolicyLoader) (bool, erro
 	if err != nil {
 		return false, err
 	}
+	return AuthorizeRoles(r, roles, pls...)
+}
+
+func AuthorizeRoles(r *http.Request, roles *role.Roles, pls ...PolicyLoader) (bool, error) {
+	var err error
 	p := make([]role.Policy, len(pls))
 	for k := range pls {
 		p[k], err = pls[k].LoadPolicy(r)

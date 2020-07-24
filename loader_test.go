@@ -1,4 +1,4 @@
-package httprole
+package protecter
 
 import (
 	"testing"
