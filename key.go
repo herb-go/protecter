@@ -136,6 +136,9 @@ func ProtectWith(p *Protecter, h http.Handler) http.Handler {
 	return DefaultKey.ProtectWith(p, h)
 }
 
+func IdentifyRequest(r *http.Request) (string, error) {
+	return DefaultKey.IdentifyRequest(r)
+}
 func LoadAuth(r *http.Request) *authority.Auth {
 	return DefaultKey.LoadAuth(r)
 }
